@@ -5,6 +5,13 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: ppa-sync-notice
+  cancel-in-progress: false
+
 env:
   DISTS: jammy
 
@@ -13,33 +20,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
-      - uses: actions/cache/restore@v4
-        with:
-          path: state
-          key: ppa-state-${{ github.run_id }}
-          restore-keys: ppa-state-
+      - uses: actions/checkout@v4
 
-      - id: check
+      - name: Check for PPA updates
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
         run: |
-          mkdir -p state
           msg=""
           for dist in $DISTS; do
-            curl -fsSL "https://ppa.setup-php.com/ondrej/php/ubuntu/dists/$dist/main/binary-amd64/Packages" \
-              | awk '/^Package:/{p=$2} /^Version:/{print p, $2}' | sort > "state/$dist.new"
-            if [ ! -f "state/$dist" ]; then
-              echo "save=true" >> "$GITHUB_OUTPUT"
-            elif ! cmp -s "state/$dist" "state/$dist.new"; then
-              echo "save=true" >> "$GITHUB_OUTPUT"
-              changed=$(comm -13 "state/$dist" "state/$dist.new")
+            state="last_seen_$dist.json"
+            new=$(curl -fsSL "https://ppa.setup-php.com/ondrej/php/ubuntu/dists/$dist/main/binary-amd64/Packages" \
+              | awk '/^Package:/{p=$2} /^Version:/{print p, $2}' | sort)
+            if [ -f "$state" ]; then
+              old=$(jq -r '.packages[]' "$state")
+              [ "$old" = "$new" ] && continue
+              changed=$(comm -13 <(echo "$old") <(echo "$new"))
               if [ -n "$changed" ]; then
                 count=$(grep -c . <<< "$changed")
                 msg+="**$dist**: $count packages updated"$'\n```\n'"$(head -10 <<< "$changed")"$'\n```\n'
                 [ "$count" -gt 10 ] && msg+="…and $((count - 10)) more"$'\n'
               fi
             fi
-            mv "state/$dist.new" "state/$dist"
+            jq -R -n --arg updated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+              '{updated: $updated, packages: [inputs]}' \
+              <<< "$new" > "$state"
           done
           if [ -n "$msg" ]; then
             msg="setup-php PPA mirror updated"$'\n'"$msg"
@@ -47,8 +51,12 @@ jobs:
               | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_WEBHOOK_URL"
           fi
 
-      - if: steps.check.outputs.save == 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: state
-          key: ppa-state-${{ github.run_id }}
+      - name: Commit state files if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add last_seen_*.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Update last seen PPA packages"
+            git push
+          fi
