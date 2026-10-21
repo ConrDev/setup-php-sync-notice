@@ -1,5 +1,5 @@
 # setup-php sync notice
-[![PPA sync](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FConrDev%2Fsetup-php-sync-notice%2Fmain%2Flast_seen_jammy.json&query=%24.status&label=PPA%20sync)](https://github.com/ConrDev/setup-php-sync-notice/actions/workflows/ppa-sync-notice.yml)
+[![PPA sync](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FConrDev%2Fsetup-php-sync-notice%2Fmain%2Flast_seen_jammy.json&query=%24%5B%27status%27%5D&label=PPA%20sync)](https://github.com/ConrDev/setup-php-sync-notice/actions/workflows/ppa-sync-notice.yml)
 [![Last PPA update](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FConrDev%2Fsetup-php-sync-notice%2Fmain%2Flast_seen_jammy.json&query=%24.updated&label=last%20PPA%20update)](last_seen_jammy.json)
 
 Posts to a Discord channel when the [setup-php PPA mirror](https://ppa.setup-php.com/ondrej/php/ubuntu/) publishes new package versions.
