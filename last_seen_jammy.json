@@ -1,5 +1,6 @@
 {
-  "updated": "2026-10-21T17:14:05Z",
+  "status": "no update",
+  "updated": "2026-10-20T21:15:08Z",
   "packages": [
     "dh-php 5.21+ubuntu22.04.1+deb.sury.org+1",
     "libapache2-mod-php 2:8.4+101~+ubuntu22.04.1+deb.sury.org+1",
