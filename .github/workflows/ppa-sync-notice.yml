@@ -1,0 +1,54 @@
+name: PPA sync notice
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+env:
+  DISTS: jammy
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - uses: actions/cache/restore@v4
+        with:
+          path: state
+          key: ppa-state-${{ github.run_id }}
+          restore-keys: ppa-state-
+
+      - id: check
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          mkdir -p state
+          msg=""
+          for dist in $DISTS; do
+            curl -fsSL "https://ppa.setup-php.com/ondrej/php/ubuntu/dists/$dist/main/binary-amd64/Packages" \
+              | awk '/^Package:/{p=$2} /^Version:/{print p, $2}' | sort > "state/$dist.new"
+            if [ ! -f "state/$dist" ]; then
+              echo "save=true" >> "$GITHUB_OUTPUT"
+            elif ! cmp -s "state/$dist" "state/$dist.new"; then
+              echo "save=true" >> "$GITHUB_OUTPUT"
+              changed=$(comm -13 "state/$dist" "state/$dist.new")
+              if [ -n "$changed" ]; then
+                count=$(grep -c . <<< "$changed")
+                msg+="**$dist**: $count packages updated"$'\n```\n'"$(head -10 <<< "$changed")"$'\n```\n'
+                [ "$count" -gt 10 ] && msg+="…and $((count - 10)) more"$'\n'
+              fi
+            fi
+            mv "state/$dist.new" "state/$dist"
+          done
+          if [ -n "$msg" ]; then
+            msg="setup-php PPA mirror updated"$'\n'"$msg"
+            jq -n --arg c "${msg:0:2000}" '{content: $c}' \
+              | curl -fsS -H 'Content-Type: application/json' -d @- "$DISCORD_WEBHOOK_URL"
+          fi
+
+      - if: steps.check.outputs.save == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: state
+          key: ppa-state-${{ github.run_id }}
