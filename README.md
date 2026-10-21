@@ -1,5 +1,5 @@
 # setup-php sync notice
-[![PPA sync notice](https://github.com/ConrDev/setup-php-sync-notice/actions/workflows/ppa-sync-notice.yml/badge.svg?event=schedule)](https://github.com/ConrDev/setup-php-sync-notice/actions/workflows/ppa-sync-notice.yml)
+[![PPA sync](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FConrDev%2Fsetup-php-sync-notice%2Fmain%2Flast_seen_jammy.json&query=%24.status&label=PPA%20sync)](https://github.com/ConrDev/setup-php-sync-notice/actions/workflows/ppa-sync-notice.yml)
 [![Last PPA update](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2FConrDev%2Fsetup-php-sync-notice%2Fmain%2Flast_seen_jammy.json&query=%24.updated&label=last%20PPA%20update)](last_seen_jammy.json)
 
 Posts to a Discord channel when the [setup-php PPA mirror](https://ppa.setup-php.com/ondrej/php/ubuntu/) publishes new package versions.
@@ -17,9 +17,15 @@ The `Packages` file is watched rather than `InRelease`, because the mirror updat
 
 ## State
 
-`last_seen_<dist>.json` holds the package list from the last change, plus an `updated` timestamp for when the change was detected. The workflow commits it whenever versions change, so its git history is a log of every PPA update.
+`last_seen_<dist>.json` holds:
 
-The **last PPA update** badge above reads `updated` from that file. It shows an error until the first run has committed the file, and only works while the repository is public.
+- `status`: `updated` if the latest check found new versions, otherwise `no update`.
+- `updated`: the mirror's `Last-Modified` time for the `Packages` file.
+- `packages`: every package and version on the mirror.
+
+The workflow commits the file whenever any of these change, so its git history is a log of every PPA update. It only posts to Discord when versions change.
+
+The **PPA sync** and **last PPA update** badges above read `status` and `updated` from that file. They show an error until the first run has committed the file, and only work while the repository is public.
 
 If posting to Discord fails, the workflow fails before committing, so the next run detects the same change and tries again.
 

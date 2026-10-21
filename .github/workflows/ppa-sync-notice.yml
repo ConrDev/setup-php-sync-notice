@@ -29,20 +29,24 @@ jobs:
           msg=""
           for dist in $DISTS; do
             state="last_seen_$dist.json"
-            new=$(curl -fsSL "https://ppa.setup-php.com/ondrej/php/ubuntu/dists/$dist/main/binary-amd64/Packages" \
-              | awk '/^Package:/{p=$2} /^Version:/{print p, $2}' | sort)
+            pkgs=$(mktemp)
+            lm=$(curl -fsSL -o "$pkgs" -w '%header{last-modified}' \
+              "https://ppa.setup-php.com/ondrej/php/ubuntu/dists/$dist/main/binary-amd64/Packages")
+            updated=$(jq -rn --arg lm "$lm" '$lm | strptime("%a, %d %b %Y %H:%M:%S GMT") | todate')
+            new=$(awk '/^Package:/{p=$2} /^Version:/{print p, $2}' "$pkgs" | sort)
+            status="no update"
             if [ -f "$state" ]; then
               old=$(jq -r '.packages[]' "$state")
-              [ "$old" = "$new" ] && continue
               changed=$(comm -13 <(echo "$old") <(echo "$new"))
               if [ -n "$changed" ]; then
+                status="updated"
                 count=$(grep -c . <<< "$changed")
                 msg+="**$dist**: $count packages updated"$'\n```\n'"$(head -10 <<< "$changed")"$'\n```\n'
                 [ "$count" -gt 10 ] && msg+="…and $((count - 10)) more"$'\n'
               fi
             fi
-            jq -R -n --arg updated "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-              '{updated: $updated, packages: [inputs]}' \
+            jq -R -n --arg status "$status" --arg updated "$updated" \
+              '{status: $status, updated: $updated, packages: [inputs]}' \
               <<< "$new" > "$state"
           done
           if [ -n "$msg" ]; then
