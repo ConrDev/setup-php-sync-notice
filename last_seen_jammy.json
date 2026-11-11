@@ -1,7 +1,8 @@
 {
-  "status": "no update",
-  "updated": "2026-11-09T21:15:08Z",
+  "status": "updated",
+  "updated": "2026-11-10T21:15:09Z",
   "packages": [
+    "debsuryorg-repository-php 2026.11.10+ubuntu22.04.1+deb.sury.org+1",
     "dh-php 5.21+ubuntu22.04.1+deb.sury.org+1",
     "libapache2-mod-php 2:8.4+101~+ubuntu22.04.1+deb.sury.org+1",
     "libapache2-mod-php5.6 5.6.40-105+ubuntu22.04.1+deb.sury.org+1",
